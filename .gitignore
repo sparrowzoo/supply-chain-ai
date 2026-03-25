@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Data
+data/raw/
+data/processed/
+models/
+logs/
+*.pkl
+*.joblib
+
+# IDE
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb

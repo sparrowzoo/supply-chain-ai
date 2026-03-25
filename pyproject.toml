@@ -1,0 +1,20 @@
+[project]
+name = "supply-chain-forecast"
+version = "0.1.0"
+description = "基于 XGBoost 的销量预测系统"
+authors = [{name = "zhanglizhi"}]
+requires-python = ">=3.12"
+dependencies = [
+    "xgboost>=3.2.0",
+    "pandas>=3.0.1",
+    "numpy>=2.4.3",
+    "scikit-learn>=1.8.0",
+    "joblib>=1.5.3",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools.packages.find]
+where = ["src"]
