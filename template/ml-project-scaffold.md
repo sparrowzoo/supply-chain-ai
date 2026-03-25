@@ -1,11 +1,12 @@
 # ML 项目脚手架规范
 
 > 基于 [nanobot](https://github.com/dnakov/nanobot) 实际源码和 ML 社区最佳实践，制定的现代化 Python ML 项目脚手架标准。
-> 本文档将作为 supply-chain-forecast 项目重构的执行依据。
+> 本文档为 supply-chain-forecast 项目的脚手架规范，与实际代码保持同步。
 >
 > - 参考版本: nanobot v0.1.4.post4 (hatchling + typer + pydantic + loguru)
 > - 适用范围: Python >=3.12，2026 年主流实践
 > - 设计原则: **与 nanobot 保持一致，仅在 ML 场景需要时才扩展**
+> - 封版日期: 2026-03-25
 
 ---
 
@@ -14,20 +15,18 @@
 ```
 supply-chain-forecast/               # 项目根目录
 ├── .github/
-│   ├── copilot-instructions.md      # Copilot 项目指令
-│   └── workflows/
-│       └── ci.yml                   # GitHub Actions CI
+│   └── copilot-instructions.md      # Copilot 项目指令
 ├── .vscode/
-│   └── settings.json                # VS Code 工作区配置
+│   ├── launch.json                  # 调试配置
+│   └── settings.json                # VS Code 工作区配置（ruff formatter）
 ├── .dockerignore
 ├── .env.example                     # 环境变量模板（不含敏感值）
 ├── .gitignore
 ├── Dockerfile
-├── LICENSE
+├── LICENSE                          # MIT
 ├── Makefile
 ├── README.md
-├── docker-compose.yml               # 可选
-├── pyproject.toml                   # ← 唯一构建配置入口
+├── pyproject.toml                   # ← 唯一构建/依赖配置入口（无 requirements.txt）
 │
 ├── config/                          # 运行时配置文件（YAML）
 │   ├── base.yaml                    # 基础配置
@@ -41,11 +40,10 @@ supply-chain-forecast/               # 项目根目录
 │   └── external/                    # 外部数据源
 │       └── .gitkeep
 │
-├── models/                          # 训练产物（不提交）
+├── models/                          # 训练产物（不提交，仅 .gitkeep）
 │   └── .gitkeep
 │
-├── notebooks/                       # Jupyter 实验笔记本
-│   └── .gitkeep
+├── notebooks/                       # Jupyter 实验笔记本（提交）
 │
 ├── logs/                            # 运行日志（不提交）
 │   └── .gitkeep
@@ -63,7 +61,7 @@ supply-chain-forecast/               # 项目根目录
 │   │   └── commands.py
 │   │
 │   ├── config/                      # 配置管理（代码级）
-│   │   ├── __init__.py
+│   │   ├── __init__.py              # 导出 AppConfig, load_config
 │   │   ├── schema.py                # pydantic 配置 Schema
 │   │   ├── loader.py                # YAML → pydantic 加载
 │   │   └── paths.py                 # 路径辅助（参考 nanobot）
@@ -77,7 +75,7 @@ supply-chain-forecast/               # 项目根目录
 │   │   └── build_features.py
 │   │
 │   ├── models/                      # 模型层（职责分离）
-│   │   ├── __init__.py
+│   │   ├── __init__.py              # 导出 Trainer, Predictor, evaluate_model
 │   │   ├── train.py                 # 训练
 │   │   ├── predict.py               # 推理
 │   │   └── evaluate.py              # 评估
@@ -93,12 +91,12 @@ supply-chain-forecast/               # 项目根目录
 ├── tests/                           # 测试
 │   ├── __init__.py
 │   ├── conftest.py                  # pytest fixtures
+│   ├── test_config.py
 │   ├── test_data.py
 │   ├── test_features.py
-│   ├── test_models.py
-│   └── test_config.py
+│   └── test_models.py
 │
-└── template/                        # 脚手架模板/参考文档（可选）
+└── template/                        # 脚手架规范文档
 ```
 
 ### 1.1 与 nanobot 的对应关系
@@ -196,20 +194,20 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["sales_forecast"]
 
-# --- nanobot 同款 ruff 配置 ---
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B"]
-ignore = ["E501"]
+ignore = ["E501", "N803", "N806"]
 # E/F/W: pycodestyle + pyflakes (基础)
 # I: isort (import 排序)
 # N: pep8-naming (命名规范)
 # UP: pyupgrade (自动升级旧语法)
 # B: bugbear (常见 bug 检测)
 # E501: 忽略行长硬限制，由 ruff format 自动处理
+# N803/N806: ML 惯例使用大写 X, X_train, X_test（与 scikit-learn 一致）
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -222,6 +220,7 @@ addopts = "-v --tb=short"
 |--------|---------|--------|------|
 | `target-version` | `py311` | `py312` | 按实际环境 |
 | ruff `select` | `E,F,I,N,W` | + `UP,B` | ML 项目代码质量更重要 |
+| ruff `ignore` | `E501` | + `N803,N806` | ML 惯例大写 X/X_train |
 | `hatch.build include` | 包含 `.md/.sh` 资源 | 不需要 | 无内嵌模板 |
 | `keywords` | `ai, agent, chatbot` | `ml, forecasting, ...` | 业务不同 |
 | 其余结构 | — | 完全一致 | — |
@@ -285,14 +284,13 @@ clean:  ## 清理产物
 	find . -type d -name __pycache__ -exec rm -rf {} +
 ```
 
-### 2.5 `requirements.txt` — 定位
+### 2.5 关于 `requirements.txt`
 
-**保留但仅作为 `pyproject.toml` 的派生文件**，用于不支持 `pyproject.toml` 的部署场景：
+**本项目不使用 `requirements.txt`**，`pyproject.toml` 是唯一的依赖声明来源。
 
-```bash
-# 生成命令（需安装 pip-tools）
-pip-compile pyproject.toml -o requirements.txt
-```
+- Dockerfile 使用 `uv pip install --system .` 直接读取 `pyproject.toml`
+- 开发环境使用 `pip install -e ".[dev]"`
+- 如有特殊部署场景需要，可通过 `pip-compile pyproject.toml -o requirements.txt` 临时生成
 
 ---
 
@@ -306,6 +304,8 @@ pip-compile pyproject.toml -o requirements.txt
 
 ```python
 # sales_forecast/config/schema.py
+"""配置 Schema — pydantic 类型校验"""
+
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 
@@ -321,19 +321,29 @@ class ModelConfig(BaseModel):
     n_estimators: int = 100
     max_depth: int = 5
     learning_rate: float = 0.1
+    subsample: float = 0.8
+    colsample_bytree: float = 0.8
     early_stopping_rounds: int = 10
 
 
 class TrainConfig(BaseModel):
+    cross_val_folds: int = 5
     save_model: bool = True
     model_dir: str = "models"
 
 
+class LoggingConfig(BaseModel):
+    level: str = "INFO"
+    file: str = "logs/training.log"
+
+
 class AppConfig(BaseSettings):
     """顶层配置，支持环境变量覆盖"""
+
     data: DataConfig = DataConfig()
     model: ModelConfig = ModelConfig()
     train: TrainConfig = TrainConfig()
+    logging: LoggingConfig = LoggingConfig()
 ```
 
 > **为什么子配置用 `BaseModel` 而非 `BaseSettings`?**
@@ -366,6 +376,8 @@ def load_config(config_path: str = "config/base.yaml") -> AppConfig:
 
 ```python
 # sales_forecast/config/paths.py
+"""路径辅助函数"""
+
 from pathlib import Path
 
 
@@ -380,6 +392,10 @@ def get_model_dir() -> Path:
 
 def get_data_dir(stage: str = "raw") -> Path:
     return get_project_root() / "data" / stage
+
+
+def get_logs_dir() -> Path:
+    return get_project_root() / "logs"
 ```
 
 ### 3.2 CLI 入口 — `sales_forecast/cli/`
@@ -388,6 +404,8 @@ def get_data_dir(stage: str = "raw") -> Path:
 
 ```python
 # sales_forecast/cli/commands.py
+"""CLI 命令定义 — 使用 typer 构建"""
+
 from pathlib import Path
 
 import typer
@@ -400,7 +418,7 @@ app = typer.Typer(help="供应链销量预测系统")
 def train(config: str = "config/base.yaml"):
     """训练模型"""
     logger.info(f"加载配置: {config}")
-    # from sales_forecast.models.train import run_training
+    # TODO: from sales_forecast.models.train import run_training
     # run_training(config)
 
 
@@ -411,7 +429,7 @@ def predict(
 ):
     """使用模型预测"""
     logger.info(f"加载模型: {model_path}")
-    # from sales_forecast.models.predict import run_prediction
+    # TODO: from sales_forecast.models.predict import run_prediction
     # run_prediction(model_path, input_file)
 
 
@@ -419,7 +437,7 @@ def predict(
 def evaluate(model_path: str = "models/model.joblib"):
     """评估模型性能"""
     logger.info("开始评估...")
-    # from sales_forecast.models.evaluate import run_evaluation
+    # TODO: from sales_forecast.models.evaluate import run_evaluation
     # run_evaluation(model_path)
 
 
@@ -466,11 +484,23 @@ logger.add("logs/training.log", rotation="10 MB")
 
 ```python
 # sales_forecast/models/__init__.py
-from sales_forecast.models.train import Trainer
-from sales_forecast.models.predict import Predictor
-from sales_forecast.models.evaluate import Evaluator
+"""模型层"""
 
-__all__ = ["Trainer", "Predictor", "Evaluator"]
+from sales_forecast.models.evaluate import evaluate_model
+from sales_forecast.models.predict import Predictor
+from sales_forecast.models.train import Trainer
+
+__all__ = ["Trainer", "Predictor", "evaluate_model"]
+```
+
+```python
+# sales_forecast/config/__init__.py
+"""配置管理模块"""
+
+from sales_forecast.config.loader import load_config
+from sales_forecast.config.schema import AppConfig
+
+__all__ = ["AppConfig", "load_config"]
 ```
 
 ### 3.6 `.env.example` — 环境变量模板
@@ -485,7 +515,7 @@ __all__ = ["Trainer", "Predictor", "Evaluator"]
 
 ```python
 # tests/conftest.py
-from pathlib import Path
+"""pytest fixtures"""
 
 import numpy as np
 import pandas as pd
@@ -504,11 +534,13 @@ def app_config():
 def sample_dataframe():
     """测试用样本数据"""
     np.random.seed(42)
-    return pd.DataFrame({
-        "feature_1": np.random.randn(100),
-        "feature_2": np.random.randn(100),
-        "target": np.random.randn(100),
-    })
+    return pd.DataFrame(
+        {
+            "feature_1": np.random.randn(100),
+            "feature_2": np.random.randn(100),
+            "target": np.random.randn(100),
+        }
+    )
 
 
 @pytest.fixture
@@ -552,23 +584,26 @@ build/
 .venv/
 venv/
 
-# 数据与模型（大文件不提交，但保留目录结构）
+# 数据与模型产物（大文件不提交，但保留目录结构）
 data/raw/
 data/processed/
 data/external/
-models/
+/models/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
-!models/.gitkeep
+!/models/.gitkeep
 
 # 日志
 logs/
 !logs/.gitkeep
 
-# 笔记本
-notebooks/
-!notebooks/.gitkeep
+# 笔记本（提交 notebook 文件，仅忽略 checkpoint）
+# .ipynb_checkpoints/ 已在下方 Jupyter 部分忽略
+
+# 报告产物
+reports/figures/
+!reports/figures/.gitkeep
 
 # 环境与密钥
 .env
@@ -587,10 +622,17 @@ htmlcov/
 
 # ruff
 .ruff_cache/
+
+# 模型文件
+*.pkl
+*.joblib
+*.h5
+*.onnx
 ```
 
-> **注意**: 使用 `!xxx/.gitkeep` 排除规则确保被 ignore 的目录仍保留 `.gitkeep` 占位文件，
-> clone 后目录结构完整。nanobot 不需要此模式，因为它没有 data/models 等产物目录。
+> **重要**: 根目录 `models/` 使用 `/models/`（前导斜杠）限定只匹配项目根目录，
+> 避免误忽略 `sales_forecast/models/` 源码目录。同时通过扩展名规则
+> (`*.joblib` `*.pkl` 等) 双重保障。
 
 ---
 
@@ -604,7 +646,7 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 WORKDIR /app
 
 # 先安装依赖（利用 Docker 层缓存）
-COPY pyproject.toml README.md LICENSE ./
+COPY pyproject.toml README.md ./
 RUN mkdir -p sales_forecast && touch sales_forecast/__init__.py && \
     uv pip install --system --no-cache . && \
     rm -rf sales_forecast
@@ -617,63 +659,102 @@ ENTRYPOINT ["sales-forecast"]
 CMD ["train"]
 ```
 
----
-
-## 七、与当前项目的差距对照
-
-| # | 规范要求 | 当前状态 | 行动项 | 优先级 |
-|---|---------|---------|--------|--------|
-| 1 | 源码在 `sales_forecast/` | ❌ 在 `sales_forecast/src/` 嵌套 | 提升目录层级 | P0 |
-| 2 | `__init__.py` + `__main__.py` | ❌ 无 | 新建 | P0 |
-| 3 | pyproject.toml 完整 | ⚠️ 基本完成 | 加 ruff/scripts/hatch 配置 | P0 |
-| 4 | 模型职责分离 | ❌ 全在 predict_model.py | 拆为 train/predict/evaluate | P1 |
-| 5 | CLI 入口 (typer) | ❌ 无 | 新建 sales_forecast/cli/ | P1 |
-| 6 | pydantic 配置管理 | ❌ 手动 yaml | 新建 config/{schema,loader,paths}.py | P1 |
-| 7 | loguru 日志 | ❌ print | 替换 | P1 |
-| 8 | ruff 代码规范 | ❌ black+pylint | 迁移 | P1 |
-| 9 | conftest.py + 测试内容 | ❌ 空文件 | 补充 | P2 |
-| 10 | .gitignore 完善 | ⚠️ 不完整 | 按模板补全 | P2 |
-| 11 | Dockerfile | ❌ 无 | 新建 | P3 |
-| 12 | CI/CD | ❌ 无 | 新建 GitHub Actions | P3 |
-| 13 | mlflow 实验追踪 | ❌ 无 | 可选 | P3 |
+> **说明**: Dockerfile 不 COPY `requirements.txt`，直接通过 `pyproject.toml` 安装依赖。
+> `README.md` 必须 COPY 是因为 hatchling 构建时需要读取它。
 
 ---
 
-## 八、建议实施路径
+## 七、配置文件实例
 
-### 第一阶段: 骨架重构（P0）
+### 7.1 `config/base.yaml`
 
-> 目标: 目录结构与 nanobot 对齐，可 `pip install -e .` 安装运行
+YAML 结构必须与 `schema.py` 的 pydantic 模型字段**扁平对应**，不要使用额外嵌套层级：
 
-1. `sales_forecast/src/` → `sales_forecast/`（提升一级，去掉嵌套 `src`）
-2. 新建 `sales_forecast/__init__.py`（含 `__version__`）
-3. 新建 `sales_forecast/__main__.py`
-4. 完善 `pyproject.toml`（加 `[project.scripts]`、`[tool.hatch]`、`[tool.ruff]`）
-5. 验证 `pip install -e .` 和 `python -m sales_forecast` 可运行
+```yaml
+# 基础配置
+data:
+  raw_path: data/raw
+  processed_path: data/processed
+  test_size: 0.2
+  random_state: 42
 
-### 第二阶段: 模块规范化（P1）
+model:
+  n_estimators: 100
+  max_depth: 5
+  learning_rate: 0.1
+  subsample: 0.8
+  colsample_bytree: 0.8
+  early_stopping_rounds: 10
 
-> 目标: 代码遵循现代 Python 实践
+train:
+  cross_val_folds: 5
+  save_model: true
+  model_dir: models
 
-6. 模型层拆分: predict_model.py → train.py + predict.py + evaluate.py
-7. 新建 `sales_forecast/cli/commands.py`（typer CLI）
-8. 新建 `sales_forecast/config/{schema,loader,paths}.py`（pydantic 配置）
-9. loguru 替代 print + 日志文件轮转
-10. 安装 ruff，移除 black/pylint 配置
+logging:
+  level: INFO
+  file: logs/training.log
+```
 
-### 第三阶段: 质量保障（P2）
+> **注意**: YAML key 必须与 pydantic Schema 字段名一一对应。
+> 不要使用 `model.params.n_estimators` 这样的嵌套结构，
+> 否则 pydantic 会静默忽略不匹配的字段，回退到默认值。
 
-> 目标: 可测试、可维护
+### 7.2 `.env.example`
 
-11. 新建 `tests/conftest.py` + 补充测试用例
-12. 完善 `.gitignore`（按标准模板）
-13. `__init__.py` 补充 `__all__` 导出
-14. 完善 README.md
+```bash
+# .env.example — 复制为 .env 并填入实际值
+# MLFLOW_TRACKING_URI=http://localhost:5000
+# MLFLOW_EXPERIMENT_NAME=sales-forecast
+```
 
-### 第四阶段: 生产就绪（P3）
+### 7.3 `.dockerignore`
 
-> 目标: 可部署、可追踪
+```
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.git/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+data/
+models/
+logs/
+notebooks/
+*.pkl
+*.joblib
+*.h5
+*.onnx
+.env
+```
 
-15. Dockerfile + docker-compose
-16. GitHub Actions CI
-17. mlflow 实验追踪（可选）
+---
+
+## 八、工具链验证命令
+
+以下命令可验证脚手架是否完整：
+
+```bash
+# 安装
+pip install -e ".[dev]"
+
+# CLI 验证
+python -m sales_forecast --help
+sales-forecast --help
+
+# 导入验证
+python -c "from sales_forecast.config import AppConfig, load_config; print(load_config().model_dump())"
+
+# 代码规范
+ruff check sales_forecast/ tests/
+ruff format --check sales_forecast/ tests/
+
+# 测试
+pytest tests/ -v --cov=sales_forecast --cov-report=term-missing
+```

@@ -2,24 +2,53 @@
 __pycache__/
 *.py[cod]
 *.so
-.Python
-env/
-venv/
 *.egg-info/
 dist/
 build/
+.venv/
+venv/
 
-# Data
+# 数据与模型产物（大文件不提交，但保留目录结构）
 data/raw/
 data/processed/
-models/
+data/external/
+/models/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+!/models/.gitkeep
+
+# 日志
 logs/
-*.pkl
-*.joblib
+!logs/.gitkeep
+
+# 笔记本（提交 notebook 文件，仅忽略 checkpoint）
+# .ipynb_checkpoints/ 已在下方 Jupyter 部分忽略
+
+# 报告产物
+reports/figures/
+!reports/figures/.gitkeep
+
+# 环境与密钥
+.env
+config/local.yaml
 
 # IDE
 .idea/
 
 # Jupyter
 .ipynb_checkpoints/
-*.ipynb
+
+# 测试与覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ruff
+.ruff_cache/
+
+# 模型文件
+*.pkl
+*.joblib
+*.h5
+*.onnx

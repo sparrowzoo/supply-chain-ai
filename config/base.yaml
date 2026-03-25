@@ -6,15 +6,12 @@ data:
   random_state: 42
 
 model:
-  name: xgboost
-  params:
-    n_estimators: 100
-    max_depth: 5
-    learning_rate: 0.1
-    subsample: 0.8
-    colsample_bytree: 0.8
-    objective: reg:squarederror
-    early_stopping_rounds: 10
+  n_estimators: 100
+  max_depth: 5
+  learning_rate: 0.1
+  subsample: 0.8
+  colsample_bytree: 0.8
+  early_stopping_rounds: 10
 
 train:
   cross_val_folds: 5

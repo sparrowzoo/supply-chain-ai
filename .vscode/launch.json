@@ -1,17 +1,23 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: predict_model",
+            "name": "Python: sales-forecast train",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/sales_forecast/src/models/predict_model.py",
+            "module": "sales_forecast",
+            "args": ["train"],
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "python": "/opt/miniconda3/envs/supply_chain_ai/bin/python"
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Python: sales-forecast predict",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "sales_forecast",
+            "args": ["predict"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

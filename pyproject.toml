@@ -1,20 +1,59 @@
 [project]
 name = "supply-chain-forecast"
 version = "0.1.0"
-description = "基于 XGBoost 的销量预测系统"
-authors = [{name = "zhanglizhi"}]
+description = "基于 XGBoost 的供应链销量预测系统"
 requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [{name = "zhanglizhi"}]
+keywords = ["ml", "forecasting", "xgboost", "supply-chain"]
+
 dependencies = [
     "xgboost>=3.2.0",
     "pandas>=3.0.1",
     "numpy>=2.4.3",
     "scikit-learn>=1.8.0",
     "joblib>=1.5.3",
+    "pydantic>=2.12.0,<3.0.0",
+    "pydantic-settings>=2.12.0,<3.0.0",
+    "pyyaml>=6.0",
+    "loguru>=0.7.3,<1.0.0",
+    "typer>=0.20.0,<1.0.0",
 ]
 
-[build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.0.0,<10.0.0",
+    "pytest-cov>=6.0.0,<7.0.0",
+    "ruff>=0.1.0",
+]
+notebook = [
+    "jupyter>=1.0.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+]
+tracking = [
+    "mlflow>=2.5.0",
+]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[project.scripts]
+sales-forecast = "sales_forecast.cli.commands:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sales_forecast"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B"]
+ignore = ["E501", "N803", "N806"]
+# N803/N806: ML 惯例使用大写 X, X_train, X_test（与 scikit-learn 一致）
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
