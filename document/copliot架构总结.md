@@ -49,3 +49,29 @@ Copilot 架构通过自Agent、子Agent、Skill、Function Calling 的分层协�
 ---
 
 > 本文档由 Copilot 自动生成，供架构分析与团队参考。
+
+
+---
+
+## skill 与 tool 的联系和区别
+
+**tool（工具）**：
+是 Copilot agent 实际可以调用的功能模块，例如 apply_patch 工具用于对文本文件进行补丁编辑。每个 tool 都有详细的参数说明、调用方式和功能边界。tool 负责“怎么做”，即具体的操作实现。
+
+**skill（技能）**：
+是领域知识、流程规范、最佳实践的集合，通常以 SKILL.md 或类似说明文件存在。skill 负责“做什么、做得更好”，即为 agent 提供行为指导、场景约束和推荐用法。
+
+**两者关系**：
+- skill 可以规定、约束 agent 在什么场景下用哪些 tool，以及如何用 tool 实现最佳实践。
+- tool 是 agent 执行具体任务的能力底座，多个 agent 可以共享同一组 tool。
+- skill 不是 tool 的集合，但 skill 可以调度和利用 tool。
+
+**举例说明**：
+apply_patch 工具的描述如下：
+> "apply_patch" 允许你对文本文件执行补丁操作，需严格遵循指定的 diff 格式。它有详细的参数说明和调用示例。
+
+如果某个 skill 规定“所有 Python 代码修改必须通过 apply_patch 工具完成，并遵循团队代码风格”，那么 agent 在执行相关任务时，会优先选择 apply_patch 工具，并按照 skill 的规范来生成补丁内容。
+
+**总结**：
+- tool 负责“怎么做”，skill 负责“做什么、做得更好”。
+- agent 通过加载 skill 获得知识和规范，通过调用 tool 完成实际操作。
